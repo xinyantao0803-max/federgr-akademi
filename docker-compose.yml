@@ -1,0 +1,205 @@
+version: '3.8'
+
+services:
+  # 基础数据库
+  mysql:
+    image: mysql:8.0
+    container_name: federgr-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: federgr_akademi
+      MYSQL_USER: federgr
+      MYSQL_PASSWORD: federgr123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:6.0
+    container_name: federgr-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: federgr
+      MONGO_INITDB_ROOT_PASSWORD: federgr123456
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: federgr-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    container_name: federgr-mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mqtt_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-t", "test", "-C", "1", "-E"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 核心服务
+  auth:
+    build: ./core/modules/auth
+    container_name: federgr-auth
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      AUTH_SERVICE_PORT: 3001
+      AUTH_SERVICE_HOST: 0.0.0.0
+      JWT_SECRET: your-secret-key-change-in-production
+      JWT_EXPIRATION: 1800
+      DATABASE_URL: mysql://federgr:federgr123456@mysql:3306/federgr_akademi
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  gateway:
+    build: ./core/api-gateway
+    container_name: federgr-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      NODE_ENV: production
+      GATEWAY_PORT: 8000
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_TIMEOUT: 30000
+      LOG_LEVEL: info
+      CORS_ORIGIN: "http://localhost:3000,http://localhost:5173"
+      RATE_LIMIT_WINDOW: 60000
+      RATE_LIMIT_MAX: 1000
+      AUTH_SERVICE_HOST: auth
+      AUTH_SERVICE_PORT: 3001
+      ACCESS_CONTROL_SERVICE_HOST: access-control
+      ACCESS_CONTROL_SERVICE_PORT: 3003
+      EDU_SERVICE_HOST: edu
+      EDU_SERVICE_PORT: 3002
+      PAYMENT_SERVICE_HOST: payment
+      PAYMENT_SERVICE_PORT: 3004
+      IOT_SERVICE_HOST: iot
+      IOT_SERVICE_PORT: 3005
+      BROADCAST_SERVICE_HOST: broadcast
+      BROADCAST_SERVICE_PORT: 3006
+      HEALTH_CHECK_ENABLED: "true"
+      HEALTH_CHECK_INTERVAL: 30000
+    depends_on:
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/gateway/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  access-control:
+    build: ./modules/access-control
+    container_name: federgr-access-control
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: production
+      AC_SERVICE_PORT: 3003
+      AC_SERVICE_HOST: 0.0.0.0
+      AUTH_SERVICE_URL: http://auth:3001
+      MQTT_BROKER_URL: mqtt://mqtt:1883
+      DATABASE_URL: mysql://federgr:federgr123456@mysql:3306/federgr_akademi
+      MONGODB_URL: mongodb://federgr:federgr123456@mongodb:27017/federgr_logs
+      LOG_LEVEL: info
+      HEARTBEAT_INTERVAL: 30000
+      HEARTBEAT_TIMEOUT: 5000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      mqtt:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # 监控和日志
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: federgr-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: federgr-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  mysql_data:
+  mongodb_data:
+  redis_data:
+  mqtt_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: federgr-network
+    driver: bridge
