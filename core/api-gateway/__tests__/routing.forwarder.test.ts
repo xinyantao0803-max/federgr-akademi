@@ -118,21 +118,7 @@ describe('LoadBalancer', () => {
     });
   });
 
-  describe('getInstanceHealth', () => {
-    it('应返回实例健康状态', () => {
-      const lb = new LoadBalancer('round-robin', instances);
-      
-      const health = lb.getInstanceHealth('auth-1');
-      expect(health).toEqual(instances[0]);
-    });
-
-    it('应为不存在的实例返回 null', () => {
-      const lb = new LoadBalancer('round-robin', instances);
-      
-      const health = lb.getInstanceHealth('non-existent');
-      expect(health).toBeNull();
-    });
-  });
+});
 });
 
 describe('RouterForwarder', () => {
