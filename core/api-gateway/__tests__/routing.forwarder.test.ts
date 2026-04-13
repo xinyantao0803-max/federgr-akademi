@@ -96,7 +96,7 @@ describe('LoadBalancer', () => {
     });
 
     it('应为不同的 IP 可能选择不同的实例', () => {
-      const lb = new LoadBalancer('ip-hash', instances);
+      const lb = new LoadBalancer(instances, 'ip-hash');
       
       const instance1 = lb.selectInstance('192.168.1.100');
       const instance2 = lb.selectInstance('192.168.1.101');
@@ -108,9 +108,9 @@ describe('LoadBalancer', () => {
 
   describe('updateInstance', () => {
     it('应更新实例信息', () => {
-      const lb = new LoadBalancer('round-robin', instances);
+      const lb = new LoadBalancer(instances, 'round-robin');
       
-      lb.updateInstance('auth-1', { connections: 50, healthy: false });
+      lb.updateInstance('auth-1', { connections: 50, isHealthy: false });
       
       const health = lb.getInstanceHealth('auth-1');
       expect(health?.connections).toBe(50);
