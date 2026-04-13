@@ -85,7 +85,7 @@ export interface PermissionCheckResult {
 }
 
 // 角色权限映射
-export interface RolePermissions {
+export type RolePermissions = {
   [key in UserRole]: string[];
 }
 

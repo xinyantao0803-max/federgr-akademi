@@ -11,15 +11,15 @@ describe('LoadBalancer', () => {
 
   beforeEach(() => {
     instances = [
-      { name: 'auth-1', host: 'localhost', port: 3001, healthy: true, weight: 1, connections: 10 },
-      { name: 'auth-2', host: 'localhost', port: 3002, healthy: true, weight: 2, connections: 20 },
-      { name: 'auth-3', host: 'localhost', port: 3003, healthy: false, weight: 1, connections: 5 },
+      { name: 'auth-1', url: 'http://localhost:3001', isHealthy: true, weight: 1, connections: 10 },
+      { name: 'auth-2', url: 'http://localhost:3002', isHealthy: true, weight: 2, connections: 20 },
+      { name: 'auth-3', url: 'http://localhost:3003', isHealthy: false, weight: 1, connections: 5 },
     ];
   });
 
   describe('Round Robin', () => {
     it('应依次选择健康实例', () => {
-      const lb = new LoadBalancer('round-robin', instances);
+      const lb = new LoadBalancer(instances, 'round-robin');
       
       const first = lb.selectInstance();
       const second = lb.selectInstance();
@@ -33,7 +33,7 @@ describe('LoadBalancer', () => {
     });
 
     it('应跳过不健康的实例', () => {
-      const lb = new LoadBalancer('round-robin', instances);
+      const lb = new LoadBalancer(instances, 'round-robin');
       
       // 多次调用确保跳过不健康的实例
       for (let i = 0; i < 10; i++) {
@@ -45,7 +45,7 @@ describe('LoadBalancer', () => {
 
   describe('Least Connections', () => {
     it('应选择连接数最少的实例', () => {
-      const lb = new LoadBalancer('least-connections', instances);
+      const lb = new LoadBalancer(instances, 'least-connections');
       
       // auth-3 不健康，忽略; auth-1 连接数最少 (10) 
       const selected = lb.selectInstance();
@@ -55,12 +55,12 @@ describe('LoadBalancer', () => {
     it('应在连接数相同时进行平衡', () => {
       // 创建连接数相同的实例
       const balancedInstances: ServiceInstance[] = [
-        { name: 'service-1', host: 'localhost', port: 3001, healthy: true, weight: 1, connections: 10 },
-        { name: 'service-2', host: 'localhost', port: 3002, healthy: true, weight: 1, connections: 10 },
-        { name: 'service-3', host: 'localhost', port: 3003, healthy: true, weight: 1, connections: 10 },
+        { name: 'service-1', url: 'http://localhost:3001', isHealthy: true, weight: 1, connections: 10 },
+        { name: 'service-2', url: 'http://localhost:3002', isHealthy: true, weight: 1, connections: 10 },
+        { name: 'service-3', url: 'http://localhost:3003', isHealthy: true, weight: 1, connections: 10 },
       ];
       
-      const lb = new LoadBalancer('least-connections', balancedInstances);
+      const lb = new LoadBalancer(balancedInstances, 'least-connections');
       
       const selected = lb.selectInstance();
       expect(selected).toBeTruthy();
@@ -69,7 +69,7 @@ describe('LoadBalancer', () => {
 
   describe('Weighted', () => {
     it('应根据权重选择实例', () => {
-      const lb = new LoadBalancer('weighted', instances);
+      const lb = new LoadBalancer(instances, 'weighted');
       
       const selections: (string | undefined)[] = [];
       for (let i = 0; i < 30; i++) {
@@ -87,7 +87,7 @@ describe('LoadBalancer', () => {
 
   describe('IP Hash', () => {
     it('应为相同的 IP 选择相同的实例', () => {
-      const lb = new LoadBalancer('ip-hash', instances);
+      const lb = new LoadBalancer(instances, 'ip-hash');
       
       const instance1 = lb.selectInstance('192.168.1.100');
       const instance2 = lb.selectInstance('192.168.1.100');

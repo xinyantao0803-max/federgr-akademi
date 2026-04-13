@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { authenticateJWT } from '../middleware/authenticate';
-import { authorize, requireRole } from '../middleware/authorize';
+import { requireRole } from '../middleware/authorize';
 import { UserRole } from '../types';
 
 const router = Router();

@@ -136,7 +136,7 @@ export function requireMinimumRole(minimumRole: UserRole) {
         return;
       }
 
-      const userLevel = roleHierarchy[req.user.role] || 0;
+      const userLevel = roleHierarchy[req.user.role as UserRole] || 0;
       const minimumLevel = roleHierarchy[minimumRole] || 0;
 
       if (userLevel < minimumLevel) {

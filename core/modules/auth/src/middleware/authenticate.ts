@@ -145,7 +145,7 @@ export function validateTenant(req: Request, res: Response, next: NextFunction):
  * 可选的 JWT 认证中间件
  * 如果有令牌则验证，没有则继续但不保存用户信息
  */
-export function optionalAuthenticate(req: Request, res: Response, next: NextFunction): void {
+export function optionalAuthenticate(req: Request, _res: Response, next: NextFunction): void {
   try {
     const authHeader = req.headers.authorization;
 

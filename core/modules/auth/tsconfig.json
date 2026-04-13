@@ -21,9 +21,11 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
+    "types": ["node", "jest"],
     "paths": {
       "@/*": ["src/*"],
       "@types/*": ["src/types/*"],

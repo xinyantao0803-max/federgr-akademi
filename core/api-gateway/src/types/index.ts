@@ -113,6 +113,7 @@ export interface ServiceInstance {
   isHealthy: boolean;
   lastHealthCheck?: number;
   failureCount: number;
+  connections?: number;
 }
 
 // 日志记录
