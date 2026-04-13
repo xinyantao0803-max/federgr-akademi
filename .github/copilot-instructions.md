@@ -1,5 +1,7 @@
 # Copilot Instructions for FederGR Akademi
 
+> 📝 **作者**：GitHub Copilot | 使用 Claude Haiku 4.5 生成
+
 **项目**：FederGR Akademi — 全场景智慧校园平台（物联网、教务、支付、门禁、监控）
 
 ## 一、项目概述
@@ -371,4 +373,6 @@ modules/
 
 **文档版本**：v1.0  
 **最后更新**：2026-04-13  
-**状态**：项目实施中 — 基础框架确定，模块持续迭代
+**状态**：项目实施中 — 基础框架确定，模块持续迭代  
+**作者**：GitHub Copilot  
+**生成日期**：2026-04-13
