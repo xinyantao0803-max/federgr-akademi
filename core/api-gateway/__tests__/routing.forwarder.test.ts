@@ -11,9 +11,9 @@ describe('LoadBalancer', () => {
 
   beforeEach(() => {
     instances = [
-      { name: 'auth-1', url: 'http://localhost:3001', isHealthy: true, weight: 1, connections: 10 },
-      { name: 'auth-2', url: 'http://localhost:3002', isHealthy: true, weight: 2, connections: 20 },
-      { name: 'auth-3', url: 'http://localhost:3003', isHealthy: false, weight: 1, connections: 5 },
+      { id: 'auth-1', name: 'auth-1', url: 'http://localhost:3001', isHealthy: true, weight: 1, connections: 10, failureCount: 0 },
+      { id: 'auth-2', name: 'auth-2', url: 'http://localhost:3002', isHealthy: true, weight: 2, connections: 20, failureCount: 0 },
+      { id: 'auth-3', name: 'auth-3', url: 'http://localhost:3003', isHealthy: false, weight: 1, connections: 5, failureCount: 3 },
     ];
   });
 
@@ -55,9 +55,9 @@ describe('LoadBalancer', () => {
     it('应在连接数相同时进行平衡', () => {
       // 创建连接数相同的实例
       const balancedInstances: ServiceInstance[] = [
-        { name: 'service-1', url: 'http://localhost:3001', isHealthy: true, weight: 1, connections: 10 },
-        { name: 'service-2', url: 'http://localhost:3002', isHealthy: true, weight: 1, connections: 10 },
-        { name: 'service-3', url: 'http://localhost:3003', isHealthy: true, weight: 1, connections: 10 },
+        { id: 'service-1', name: 'service-1', url: 'http://localhost:3001', isHealthy: true, weight: 1, connections: 10, failureCount: 0 },
+        { id: 'service-2', name: 'service-2', url: 'http://localhost:3002', isHealthy: true, weight: 1, connections: 10, failureCount: 0 },
+        { id: 'service-3', name: 'service-3', url: 'http://localhost:3003', isHealthy: true, weight: 1, connections: 10, failureCount: 0 },
       ];
       
       const lb = new LoadBalancer(balancedInstances, 'least-connections');
@@ -106,15 +106,15 @@ describe('LoadBalancer', () => {
     });
   });
 
-  describe('updateInstance', () => {
-    it('应更新实例信息', () => {
+  describe('markUnhealthy', () => {
+    it('应标记实例为不健康', () => {
       const lb = new LoadBalancer(instances, 'round-robin');
       
-      lb.updateInstance('auth-1', { connections: 50, isHealthy: false });
+      lb.markUnhealthy('auth-1');
       
-      const health = lb.getInstanceHealth('auth-1');
-      expect(health?.connections).toBe(50);
-      expect(health?.healthy).toBe(false);
+      // 后续调用应该跳过不健康的实例
+      const selected = lb.selectInstance();
+      expect(selected?.id).not.toBe('auth-1');
     });
   });
 
